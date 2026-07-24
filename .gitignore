@@ -50,5 +50,8 @@ ast_output/
 *.ast_summary.md
 .ast-intel-cache.json
 
+.claude/*
+graph.json
+
 # Benchmark run outputs (generated agent session logs)
 benchmarks/results/
