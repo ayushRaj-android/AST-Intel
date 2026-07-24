@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 # ---------------------------------------------------------------------------
 [project]
 name = "ast-intel"
-version = "0.1.7"
+version = "0.1.8"
 description = "Language-agnostic CLI that parses codebases into structured semantic AST indexes for coding agents, security analysis, and impact assessment."
 readme = "README.md"
 license = {text = "MIT"}
@@ -119,6 +119,22 @@ dev = [
 # ---------------------------------------------------------------------------
 [tool.hatch.build.targets.wheel]
 packages = ["ast_intel"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/ast_intel",
+    "/pyproject.toml",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+exclude = [
+    "/.cursor",
+    "/.venv",
+    "/.venv-publish",
+    "/.git",
+    "/.claude",
+]
 
 # ---------------------------------------------------------------------------
 # Ruff — linter & formatter

@@ -12,7 +12,8 @@
 4. [CLI Commands Reference](#cli-commands-reference)
 5. [MCP in IDE — Quick Setup](#mcp-in-ide--quick-setup)
 6. [MCP Server Setup (Detailed)](#mcp-server-setup)
-7. [Troubleshooting](#troubleshooting)
+7. [Azure Artifacts + Docker (multi-service)](#azure-artifacts--docker-multi-service)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -84,6 +85,28 @@ source .venv/bin/activate   # Linux/macOS
 # .venv\Scripts\activate    # Windows
 
 pip install -e ".[all,analysis,mcp]"
+```
+
+### Method 5 — Azure Artifacts (private org feed)
+
+```bash
+# Create feed once (Azure CLI):
+#   export AZURE_ORG=... AZURE_FEED=python
+#   ./scripts/setup_azure_artifacts_feed.sh
+# Publish:
+#   export AZURE_PAT=<Packaging Read&Write PAT>
+#   ./scripts/publish_azure_artifacts.sh
+
+# Install (org-scoped feed):
+pip install "ast-intel[all,analysis,mcp]" \
+  --index-url "https://${USER}:${AZURE_PAT}@pkgs.dev.azure.com/${AZURE_ORG}/_packaging/${AZURE_FEED}/pypi/simple/" \
+  --extra-index-url https://pypi.org/simple
+```
+
+Project-scoped feed URL:
+
+```text
+https://pkgs.dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_packaging/${AZURE_FEED}/pypi/simple/
 ```
 
 ---
@@ -535,6 +558,78 @@ Then use that full path in your `.vscode/mcp.json`:
 
 ---
 
+## Azure Artifacts + Docker (multi-service)
+
+Pattern: each service image installs private `ast-intel`, runs the app **and** MCP
+(Streamable HTTP on port `7500` at `/mcp`). Local IDEs keep using stdio.
+
+### Publish (maintainers)
+
+```bash
+export AZURE_ORG=your-org AZURE_FEED=python AZURE_PAT=...
+./scripts/setup_azure_artifacts_feed.sh   # once
+./scripts/publish_azure_artifacts.sh
+```
+
+Tag-triggered CI: see `azure-pipelines.yml`.
+
+### Dockerfile (production services)
+
+Copy `docker/service.Dockerfile.snippet` and `docker/entrypoint-with-mcp.sh` into the
+service repo, then build with a BuildKit secret (never bake the PAT into layers):
+
+```bash
+export AZURE_PAT=...   # Packaging Read is enough for install
+docker build \
+  --secret id=ado_pat,env=AZURE_PAT \
+  --build-arg AZURE_ORG=your-org \
+  --build-arg AZURE_FEED=python \
+  -t my-service:latest .
+```
+
+### Client wiring (2C)
+
+**A. Developer IDE (stdio)** — on a laptop checkout of the service:
+
+```bash
+pip install "ast-intel[all,analysis,mcp]" --index-url "https://...Azure Artifacts.../simple/"
+ast-intel install cursor    # or: vscode / claude / windsurf
+# writes .cursor/mcp.json → command ast-intel serve <abs-repo>
+```
+
+**B. Runtime / remote agents (HTTP)** — inside the same container:
+
+```text
+http://127.0.0.1:7500/mcp
+```
+
+Example Cursor remote MCP entry (only if you intentionally expose the port behind auth):
+
+```json
+{
+  "mcpServers": {
+    "ast-intel": {
+      "url": "http://my-service.internal:7500/mcp"
+    }
+  }
+}
+```
+
+Prefer keeping `7500` container-local; put Easy Auth / API key / mTLS in front of any
+external exposure.
+
+### Reference image (local proof without Azure)
+
+```bash
+python -m build
+docker build -f docker/reference/Dockerfile -t ast-intel-reference:local .
+docker run --rm -p 8080:8080 -p 7500:7500 ast-intel-reference:local
+# service: http://127.0.0.1:8080/
+# MCP:     http://127.0.0.1:7500/mcp
+```
+
+---
+
 ## For the Maintainer: Building & Sharing
 
 ### Build the Wheel
@@ -546,12 +641,24 @@ python3 -m build
 # Output: dist/ast_intel-0.1.1-py3-none-any.whl
 ```
 
-### Share via Internal PyPI / Artifacts
+### Share via Azure Artifacts
+
+```bash
+export AZURE_ORG=your-org AZURE_FEED=python AZURE_PAT=...
+./scripts/publish_azure_artifacts.sh
+
+# Teammates / Docker builds install with:
+pip install "ast-intel[all,analysis,mcp]" \
+  --index-url "https://build:${AZURE_PAT}@pkgs.dev.azure.com/${AZURE_ORG}/_packaging/${AZURE_FEED}/pypi/simple/" \
+  --extra-index-url https://pypi.org/simple
+```
+
+### Share via Internal PyPI / Artifacts (generic twine)
 
 ```bash
 # Upload to your org's private PyPI
 pip install twine
-twine upload --repository internal dist/ast_intel-0.1.1-py3-none-any.whl
+twine upload --repository internal dist/ast_intel-0.1.8-py3-none-any.whl
 
 # Teammates install from private registry
 pip install --index-url https://pypi.yourorg.com/simple ast-intel[all,analysis,mcp]

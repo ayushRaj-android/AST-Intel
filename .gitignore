@@ -12,6 +12,7 @@ wheels/
 
 # Virtual environments
 .venv/
+.venv-publish/
 venv/
 env/
 ENV/

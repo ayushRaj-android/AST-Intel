@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.6
+# ---------------------------------------------------------------------------
+# Target feed (project-scoped):
+#   https://dev.azure.com/ayush-azure/LeetNexus
+#   index: https://pkgs.dev.azure.com/ayush-azure/LeetNexus/_packaging/python/pypi/simple/
+#
+# Build with:
+#   export AZURE_PAT=...   # Packaging Read
+#   docker build \
+#     --secret id=ado_pat,env=AZURE_PAT \
+#     --build-arg AZURE_ORG=ayush-azure \
+#     --build-arg AZURE_PROJECT=LeetNexus \
+#     --build-arg AZURE_FEED=python \
+#     -t my-service:latest .
+# ---------------------------------------------------------------------------
+
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG AZURE_ORG=ayush-azure
+ARG AZURE_PROJECT=LeetNexus
+ARG AZURE_FEED=python
+
+# Install ast-intel from private Azure Artifacts (PAT via BuildKit secret — never ENV/ARG)
+RUN --mount=type=secret,id=ado_pat \
+    PAT="$(cat /run/secrets/ado_pat)" && \
+    pip install --no-cache-dir "ast-intel[all,analysis,mcp]" \
+      --index-url "https://build:${PAT}@pkgs.dev.azure.com/${AZURE_ORG}/${AZURE_PROJECT}/_packaging/${AZURE_FEED}/pypi/simple/" \
+      --extra-index-url "https://pypi.org/simple"
+
+WORKDIR /app
+COPY . /app
+# RUN pip install --no-cache-dir .   # install your service here
+
+COPY docker/entrypoint-with-mcp.sh /usr/local/bin/entrypoint-with-mcp.sh
+RUN chmod +x /usr/local/bin/entrypoint-with-mcp.sh
+
+ENV AST_INTEL_REPO=/app \
+    AST_INTEL_HOST=0.0.0.0 \
+    AST_INTEL_PORT=7500
+
+EXPOSE 7500
+ENTRYPOINT ["entrypoint-with-mcp.sh"]
+CMD ["your-service-start-command"]

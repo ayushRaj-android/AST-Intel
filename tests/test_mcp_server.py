@@ -630,6 +630,8 @@ class TestSimilarityAutoCompute:
         assert result.exit_code == 0
         assert "--similarity" in result.output
         assert "--similarity-thr" in result.output
+        assert "--port" in result.output
+        assert "--host" in result.output
 
 
 # endregion: --- Similarity Auto-Compute Tests

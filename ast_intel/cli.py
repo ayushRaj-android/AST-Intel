@@ -1907,11 +1907,30 @@ def serve_cmd(  # noqa: PLR0913
             help="Disable background file watcher (no auto-rebuild).",
         ),
     ] = False,
+    host: Annotated[
+        str,
+        typer.Option(
+            "--host",
+            help=(
+                "Bind address for Streamable HTTP (used with --port). "
+                "Default 127.0.0.1; use 0.0.0.0 in containers."
+            ),
+        ),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int | None,
+        typer.Option(
+            "--port",
+            help=(
+                "If set, serve Streamable HTTP MCP at http://HOST:PORT/mcp "
+                "instead of stdio. Typical container value: 7500."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Start an MCP server exposing the code graph as tools.
 
-    The server uses stdio transport by default, suitable for editor
-    integration (VS Code, Cursor, etc.).  Configure in your editor::
+    Stdio (default) for editor integration::
 
         {
           "servers": {
@@ -1921,6 +1940,10 @@ def serve_cmd(  # noqa: PLR0913
             }
           }
         }
+
+    Streamable HTTP for containers / runtime agents::
+
+        ast-intel serve /app --host 0.0.0.0 --port 7500 --no-watch
     """
     import asyncio
 
@@ -1939,7 +1962,7 @@ def serve_cmd(  # noqa: PLR0913
         raise typer.Exit(code=2) from None
 
     try:
-        from ast_intel.mcp_server import run_stdio
+        from ast_intel.mcp_server import run_http, run_stdio
     except ImportError:
         _err_console.print(
             "MCP support requires the [bold]mcp[/bold] package.\n"
@@ -1947,17 +1970,18 @@ def serve_cmd(  # noqa: PLR0913
         )
         raise typer.Exit(code=1) from None
 
-    asyncio.run(
-        run_stdio(
-            validated_repo,
-            output_dir=output_dir,
-            no_cache=no_cache,
-            analyze=analyze,
-            similarity=similarity,
-            similarity_threshold=similarity_threshold,
-            watch=not no_watch,
-        ),
-    )
+    common = {
+        "output_dir": output_dir,
+        "no_cache": no_cache,
+        "analyze": analyze,
+        "similarity": similarity,
+        "similarity_threshold": similarity_threshold,
+        "watch": not no_watch,
+    }
+    if port is None:
+        asyncio.run(run_stdio(validated_repo, **common))
+    else:
+        asyncio.run(run_http(validated_repo, host=host, port=port, **common))
 
 
 # endregion: --- Serve Subcommand (MCP Server)

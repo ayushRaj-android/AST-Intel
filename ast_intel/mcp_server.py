@@ -7,15 +7,16 @@ query the code graph interactively.
 
 Usage::
 
-    ast-intel serve /path/to/repo          # stdio transport (default)
-    ast-intel serve /path/to/repo --port 8080  # SSE transport
+    ast-intel serve /path/to/repo                 # stdio transport (default)
+    ast-intel serve /path/to/repo --port 7500     # Streamable HTTP at /mcp
 
 Programmatic::
 
     import asyncio
-    from ast_intel.mcp_server import run_stdio
+    from ast_intel.mcp_server import run_stdio, run_http
 
     asyncio.run(run_stdio(repo_path))
+    asyncio.run(run_http(repo_path, host="0.0.0.0", port=7500))
 """
 
 from __future__ import annotations
@@ -3094,7 +3095,7 @@ def _iac_docker_info(
 # ---------------------------------------------------------------------------
 
 
-async def run_stdio(  # noqa: PLR0913
+def _bootstrap_server(  # noqa: PLR0913
     repo_path: Path,
     *,
     output_dir: Path | None = None,
@@ -3102,34 +3103,13 @@ async def run_stdio(  # noqa: PLR0913
     analyze: bool = False,
     similarity: bool = True,
     similarity_threshold: float = 0.4,
-    watch: bool = True,
-) -> None:
-    """Load the graph, build the engine, and run the MCP server over stdio.
-
-    This is the primary entry point used by the ``ast-intel serve``
-    CLI subcommand.
-
-    Args:
-        repo_path: Repository root.
-        output_dir: Directory containing ``graph.json``.
-        no_cache: Force graph rebuild.
-        analyze: Run community detection for ``get_community`` support.
-        similarity: Auto-compute ``SIMILAR_TO`` edges if the graph
-            does not already contain them (default ``True``).
-        similarity_threshold: Minimum Jaccard score for similarity
-            edges (default ``0.4``).
-        watch: Start a background file watcher to auto-rebuild the
-            graph when source files change (default ``True``).
-    """
-    import asyncio
-
-    from mcp.server.stdio import stdio_server
+) -> tuple[Any, _GraphState, Path]:
+    """Load graph + engine and return ``(server, state, resolved_output)``."""
+    from mcp.server import Server as McpServer
 
     resolved_output = output_dir if output_dir is not None else repo_path
-
     graph = load_or_build_graph(repo_path, output_dir=output_dir, no_cache=no_cache)
 
-    # Auto-compute similarity edges if requested and none exist.
     if similarity:
         has_similar = any(
             e.relation == EdgeRelation.SIMILAR_TO for e in graph.edges
@@ -3162,17 +3142,59 @@ async def run_stdio(  # noqa: PLR0913
         signal_aggregator=aggregator,
     )
     state = _GraphState(engine, graph, repo_path=repo_path)
-    server = create_server(engine, graph, state=state)
+    server: McpServer[Any, Any] = create_server(engine, graph, state=state)
+    return server, state, resolved_output
+
+
+async def run_stdio(  # noqa: PLR0913
+    repo_path: Path,
+    *,
+    output_dir: Path | None = None,
+    no_cache: bool = False,
+    analyze: bool = False,
+    similarity: bool = True,
+    similarity_threshold: float = 0.4,
+    watch: bool = True,
+) -> None:
+    """Load the graph, build the engine, and run the MCP server over stdio.
+
+    This is the primary entry point used by the ``ast-intel serve``
+    CLI subcommand when ``--port`` is not set.
+
+    Args:
+        repo_path: Repository root.
+        output_dir: Directory containing ``graph.json``.
+        no_cache: Force graph rebuild.
+        analyze: Run community detection for ``get_community`` support.
+        similarity: Auto-compute ``SIMILAR_TO`` edges if the graph
+            does not already contain them (default ``True``).
+        similarity_threshold: Minimum Jaccard score for similarity
+            edges (default ``0.4``).
+        watch: Start a background file watcher to auto-rebuild the
+            graph when source files change (default ``True``).
+    """
+    import asyncio
+
+    from mcp.server.stdio import stdio_server
+
+    server, state, resolved_output = _bootstrap_server(
+        repo_path,
+        output_dir=output_dir,
+        no_cache=no_cache,
+        analyze=analyze,
+        similarity=similarity,
+        similarity_threshold=similarity_threshold,
+    )
 
     logger.info(
         "Starting MCP server (stdio) for %s — %d nodes, %d edges",
         repo_path,
-        len(graph.nodes),
-        len(graph.edges),
+        len(state.graph.nodes),
+        len(state.graph.edges),
     )
 
-    # --- Background watcher ---
     watcher_thread: threading.Thread | None = None
+    reload_task: asyncio.Task[None] | None = None
     if watch:
         watcher_thread = _start_watcher(
             repo_path,
@@ -3180,10 +3202,6 @@ async def run_stdio(  # noqa: PLR0913
             similarity=similarity,
             similarity_threshold=similarity_threshold,
         )
-
-    # --- Background graph-reload task ---
-    reload_task: asyncio.Task[None] | None = None
-    if watch:
         reload_task = asyncio.create_task(
             _graph_reload_loop(
                 state,
@@ -3203,6 +3221,177 @@ async def run_stdio(  # noqa: PLR0913
             reload_task.cancel()
         if watcher_thread is not None:
             _stop_watcher()
+
+
+def create_http_app(  # noqa: PLR0913
+    repo_path: Path,
+    *,
+    host: str = "127.0.0.1",
+    port: int = 7500,
+    output_dir: Path | None = None,
+    no_cache: bool = False,
+    analyze: bool = False,
+    similarity: bool = True,
+    similarity_threshold: float = 0.4,
+    watch: bool = True,
+) -> Any:
+    """Build an ASGI app exposing Streamable HTTP MCP at ``/mcp``.
+
+    Used by :func:`run_http` and by tests.  Callers that start the app
+    themselves must keep the process alive (e.g. via uvicorn).
+    """
+    import asyncio
+    import contextlib
+    from collections.abc import AsyncIterator
+
+    from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+    from mcp.server.transport_security import TransportSecuritySettings
+    from starlette.applications import Starlette
+    from starlette.responses import PlainTextResponse
+    from starlette.routing import Mount
+
+    server, state, resolved_output = _bootstrap_server(
+        repo_path,
+        output_dir=output_dir,
+        no_cache=no_cache,
+        analyze=analyze,
+        similarity=similarity,
+        similarity_threshold=similarity_threshold,
+    )
+
+    allowed_hosts = [
+        f"localhost:{port}",
+        f"127.0.0.1:{port}",
+        "localhost:*",
+        "127.0.0.1:*",
+        "testserver",  # Starlette / httpx TestClient default Host
+        "testserver:*",
+    ]
+    if host not in {"0.0.0.0", "::", "[::]"}:  # noqa: S104
+        allowed_hosts.append(f"{host}:{port}")
+        allowed_hosts.append(f"{host}:*")
+
+    security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed_hosts,
+        allowed_origins=[
+            f"http://localhost:{port}",
+            f"http://127.0.0.1:{port}",
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+        ],
+    )
+
+    session_manager = StreamableHTTPSessionManager(
+        app=server,
+        json_response=True,
+        stateless=True,
+        security_settings=security,
+    )
+
+    class _McpPathApp:
+        """Map ``/mcp`` and ``/mcp/*`` onto the Streamable HTTP transport."""
+
+        def __init__(self, handler: Any) -> None:
+            self._handler = handler
+
+        async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+            if scope["type"] != "http":
+                await self._handler(scope, receive, send)
+                return
+            path = scope.get("path", "")
+            if path == "/mcp" or path.startswith("/mcp/"):
+                new_scope = dict(scope)
+                rest = path[len("/mcp") :] or "/"
+                if not rest.startswith("/"):
+                    rest = "/" + rest
+                new_scope["path"] = rest
+                new_scope["root_path"] = scope.get("root_path", "") + "/mcp"
+                await self._handler(new_scope, receive, send)
+                return
+            await PlainTextResponse("Not Found", status_code=404)(
+                scope, receive, send,
+            )
+
+    @contextlib.asynccontextmanager
+    async def lifespan(_app: Any) -> AsyncIterator[None]:
+        watcher_thread: threading.Thread | None = None
+        reload_task: asyncio.Task[None] | None = None
+        if watch:
+            watcher_thread = _start_watcher(
+                repo_path,
+                resolved_output,
+                similarity=similarity,
+                similarity_threshold=similarity_threshold,
+            )
+            reload_task = asyncio.create_task(
+                _graph_reload_loop(
+                    state,
+                    resolved_output,
+                    analyze=analyze,
+                    similarity=similarity,
+                    similarity_threshold=similarity_threshold,
+                ),
+            )
+        try:
+            async with session_manager.run():
+                yield
+        finally:
+            if reload_task is not None:
+                reload_task.cancel()
+            if watcher_thread is not None:
+                _stop_watcher()
+
+    logger.info(
+        "Prepared MCP HTTP app for %s — %d nodes, %d edges (bind %s:%d/mcp)",
+        repo_path,
+        len(state.graph.nodes),
+        len(state.graph.edges),
+        host,
+        port,
+    )
+
+    return Starlette(
+        routes=[Mount("/", app=_McpPathApp(session_manager.handle_request))],
+        lifespan=lifespan,
+    )
+
+
+async def run_http(  # noqa: PLR0913
+    repo_path: Path,
+    *,
+    host: str = "127.0.0.1",
+    port: int = 7500,
+    output_dir: Path | None = None,
+    no_cache: bool = False,
+    analyze: bool = False,
+    similarity: bool = True,
+    similarity_threshold: float = 0.4,
+    watch: bool = True,
+) -> None:
+    """Run the MCP server over Streamable HTTP (single ``/mcp`` endpoint).
+
+    Intended for container / remote agents.  Local IDEs should keep using
+    :func:`run_stdio`.
+    """
+    import uvicorn
+
+    app = create_http_app(
+        repo_path,
+        host=host,
+        port=port,
+        output_dir=output_dir,
+        no_cache=no_cache,
+        analyze=analyze,
+        similarity=similarity,
+        similarity_threshold=similarity_threshold,
+        watch=watch,
+    )
+
+    logger.info("Starting MCP server (HTTP) at http://%s:%d/mcp", host, port)
+    config = uvicorn.Config(app, host=host, port=port, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 
 # ---------------------------------------------------------------------------
@@ -3310,8 +3499,12 @@ async def _graph_reload_loop(  # noqa: PLR0913
 
                 analysis = GraphAnalyzer().analyze(graph)
 
+            reload_root = state.repo_path
+            if reload_root is None:
+                logger.warning("Graph reload skipped: repo_path unset on state")
+                continue
             history_builder, enrichment, aggregator = _build_history_stack(
-                repo_path,
+                reload_root,
             )
             engine = QueryEngine(
                 graph,

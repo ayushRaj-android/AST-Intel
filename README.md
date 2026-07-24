@@ -14,6 +14,10 @@ pip install -e ".[rust,dev]"
 # Analyze a repository
 ast-intel /path/to/your/project --include src/ --output ./analysis
 
+# MCP for IDEs (stdio) or containers (HTTP)
+ast-intel serve /path/to/your/project
+ast-intel serve /app --host 0.0.0.0 --port 7500 --no-watch
+
 # Output: ast.json + summary.md
 ```
 

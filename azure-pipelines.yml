@@ -1,0 +1,58 @@
+# Publish ast-intel to Azure Artifacts on version tags.
+#
+# Target: https://dev.azure.com/ayush-azure/LeetNexus
+#
+# One-time setup in Azure DevOps:
+# 1. Artifacts → Create Feed → name "python" (project-scoped to LeetNexus)
+#    → enable Upstream sources → PyPI
+# 2. Feed Settings → Permissions → add
+#      "LeetNexus Build Service (ayush-azure)" with role Contributor
+# 3. Pipelines → New pipeline → existing YAML → azure-pipelines.yml
+#
+# Trigger: git tag v* (e.g. git tag v0.1.8 && git push --tags)
+
+trigger:
+  tags:
+    include:
+      - v*
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  pythonVersion: "3.13"
+  feedName: "python"
+  artifactProject: "LeetNexus"
+
+stages:
+  - stage: BuildAndPublish
+    displayName: Build and publish to Azure Artifacts
+    jobs:
+      - job: Publish
+        displayName: Build wheel + upload
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(pythonVersion)
+              addToPath: true
+
+          - script: |
+              python -m pip install --upgrade pip build twine
+              python -m build
+              ls -la dist/
+            displayName: Build sdist and wheel
+
+          - task: TwineAuthenticate@1
+            displayName: Authenticate to Azure Artifacts
+            inputs:
+              artifactFeed: $(artifactProject)/$(feedName)
+
+          - script: |
+              python -m twine upload \
+                -r "$(artifactProject)/$(feedName)" \
+                --config-file "$(PYPIRC_PATH)" \
+                --non-interactive \
+                dist/*
+            displayName: Upload to Azure Artifacts
