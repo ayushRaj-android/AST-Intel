@@ -1,0 +1,34 @@
+type Query {
+  order(id: ID!): Order
+  orders: [Order!]!
+}
+
+type Mutation {
+  placeOrder(input: PlaceOrderInput!): Order!
+}
+
+type Subscription {
+  orderStatusChanged(orderId: ID!): Order!
+}
+
+type Order {
+  id: ID!
+  status: String!
+  total: Float!
+  items: [OrderItem!]!
+}
+
+type OrderItem {
+  productId: ID!
+  quantity: Int!
+  price: Float!
+}
+
+input PlaceOrderInput {
+  items: [OrderItemInput!]!
+}
+
+input OrderItemInput {
+  productId: ID!
+  quantity: Int!
+}

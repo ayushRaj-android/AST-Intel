@@ -1,0 +1,14 @@
+# A random configuration file — NOT an OpenAPI spec.
+app:
+  name: my-service
+  port: 8080
+  debug: false
+
+database:
+  host: localhost
+  port: 5432
+  name: mydb
+
+logging:
+  level: info
+  format: json

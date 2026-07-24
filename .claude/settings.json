@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ast-intel": {
+      "command": "/home/rajayush/anaconda3/bin/ast-intel",
+      "args": [
+        "serve",
+        "."
+      ]
+    }
+  }
+}

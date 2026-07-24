@@ -1,0 +1,270 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
+[project]
+name = "ast-intel"
+version = "0.1.7"
+description = "Language-agnostic CLI that parses codebases into structured semantic AST indexes for coding agents, security analysis, and impact assessment."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+keywords = ["ast", "code-analysis", "semantic-index", "coding-agent", "tree-sitter"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+
+# --- Core dependencies (always installed) ---
+dependencies = [
+    "typer>=0.12.0,<1.0",
+    "rich>=13.0.0,<14.0",
+    "pathspec>=0.12.0,<1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/AstIntel/ast-intel"
+Documentation = "https://github.com/AstIntel/ast-intel#readme"
+Repository = "https://github.com/AstIntel/ast-intel"
+Changelog = "https://github.com/AstIntel/ast-intel/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/AstIntel/ast-intel/issues"
+
+# --- CLI entry point ---
+[project.scripts]
+ast-intel = "ast_intel.cli:app"
+
+# --- Optional language-specific dependencies ---
+[project.optional-dependencies]
+rust = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-rust>=0.23.0,<1.0"]
+go = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-go>=0.23.0,<1.0"]
+python = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-python>=0.23.0,<1.0"]
+typescript = [
+    "tree-sitter>=0.23.0,<1.0",
+    "tree-sitter-typescript>=0.23.0,<1.0",
+    "tree-sitter-javascript>=0.23.0,<1.0",
+]
+csharp = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-c-sharp>=0.23.0,<1.0", "defusedxml>=0.7.0,<1.0"]
+cpp = [
+    "tree-sitter>=0.23.0,<1.0",
+    "tree-sitter-c>=0.23.0,<1.0",
+    "tree-sitter-cpp>=0.23.0,<1.0",
+]
+java = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-java>=0.23.0,<1.0", "defusedxml>=0.7.0,<1.0"]
+ruby = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-ruby>=0.23.0,<1.0"]
+kotlin = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-kotlin>=1.0.0,<2.0"]
+scala = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-scala>=0.22.0,<1.0"]
+swift = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-swift>=0.6.0,<1.0"]
+php = ["tree-sitter>=0.23.0,<1.0", "tree-sitter-php>=0.23.0,<1.0"]
+contracts = ["pyyaml>=6.0,<7.0"]
+terraform = ["python-hcl2>=4.0,<9.0"]
+all = [
+    "tree-sitter>=0.23.0,<1.0",
+    "tree-sitter-rust>=0.23.0,<1.0",
+    "tree-sitter-go>=0.23.0,<1.0",
+    "tree-sitter-python>=0.23.0,<1.0",
+    "tree-sitter-typescript>=0.23.0,<1.0",
+    "tree-sitter-javascript>=0.23.0,<1.0",
+    "tree-sitter-c-sharp>=0.23.0,<1.0",
+    "tree-sitter-c>=0.23.0,<1.0",
+    "tree-sitter-cpp>=0.23.0,<1.0",
+    "tree-sitter-java>=0.23.0,<1.0",
+    "tree-sitter-ruby>=0.23.0,<1.0",
+    "tree-sitter-kotlin>=1.0.0,<2.0",
+    "tree-sitter-scala>=0.22.0,<1.0",
+    "tree-sitter-swift>=0.6.0,<1.0",
+    "tree-sitter-php>=0.23.0,<1.0",
+    "defusedxml>=0.7.0,<1.0",
+    "pyyaml>=6.0,<7.0",
+]
+analysis = [
+    "networkx>=3.0,<4.0",
+]
+leiden = [
+    "networkx>=3.0,<4.0",
+    "graspologic>=3.0,<4.0",
+]
+mcp = [
+    "mcp>=1.0,<2.0",
+]
+watch = [
+    "watchdog>=4.0,<6.0",
+]
+dev = [
+    "pytest>=8.0.0,<9.0",
+    "pytest-cov>=5.0.0,<6.0",
+    "ruff>=0.5.0,<1.0",
+    "mypy>=1.10.0,<2.0",
+    "pre-commit>=3.7.0,<4.0",
+    "networkx>=3.0,<4.0",
+    "pyyaml>=6.0,<7.0",
+    "watchdog>=4.0,<6.0",
+]
+
+# ---------------------------------------------------------------------------
+# Hatch build configuration
+# ---------------------------------------------------------------------------
+[tool.hatch.build.targets.wheel]
+packages = ["ast_intel"]
+
+# ---------------------------------------------------------------------------
+# Ruff — linter & formatter
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["ast_intel", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "ALL",  # Enable ALL rules
+]
+ignore = [
+    "D100",    # Missing docstring in public module (relax for now; enable in Phase 10)
+    "D104",    # Missing docstring in public package
+    "D107",    # Missing docstring in __init__ (redundant with class docstring)
+    "D203",    # Conflicts with D211 (no-blank-line-before-class)
+    "D213",    # Conflicts with D212 (multi-line-summary-second-line)
+    "COM812",  # Trailing comma — conflicts with ruff formatter
+    "ISC001",  # Single-line implicit string concat — conflicts with ruff formatter
+    "S101",    # Use of assert — needed in tests
+    "FBT002",  # Boolean default positional — required by typer CLI pattern
+    "FIX002",  # TODO comments — we use structured TODO(phase-N) markers
+    "TD003",   # Missing issue link on TODO — we use phase markers instead
+    "RUF002",  # Ambiguous unicode in docstrings — intentional en-dash usage
+    "RUF003",  # Ambiguous unicode in comments — intentional en-dash usage
+    "TC001",   # Move app import to TYPE_CHECKING — breaks runtime for dataclass fields
+    "TC003",   # Move stdlib import to TYPE_CHECKING — breaks runtime for Path usage
+    "PLC0415", # Import not at top level — needed for lazy os import in CLI
+    "ARG001",  # Unused function argument — typer registers args by name, used in later phases
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**/*.py" = [
+    "T201",    # print allowed in verification scripts
+    "S112",    # try-except-continue is fine in scripts
+    "BLE001",  # blind exception catches fine in scripts
+    "C901",    # complexity limits relaxed for scripts
+    "PLR0912", # branch limits relaxed for scripts
+    "PLR0915", # statement limits relaxed for scripts
+    "PLR2004", # magic values fine in scripts
+    "D",       # no docstrings required in scripts
+    "RET504",  # unnecessary assignment fine in scripts
+    "E501",    # line length relaxed in scripts
+    "F401",    # unused imports fine in scripts
+    "F841",    # unused variables fine in scripts
+    "FBT",     # boolean typed args fine in scripts
+    "B905",    # zip strict= not required in scripts
+]
+"tests/**/*.py" = [
+    "ANN",     # No type annotations required in tests
+    "D",       # No docstrings required in tests
+    "S101",    # assert is fine in tests
+    "S108",    # /tmp paths are fine in tests (test fixtures)
+    "S603",    # subprocess calls with trusted input fine in tests
+    "S607",    # partial executable paths fine in tests (git)
+    "PLR2004", # Magic value comparisons fine in tests
+    "SLF001",  # Private member access fine in tests
+    "ARG002",  # Unused method args fine for test mock classes
+    "RUF012",  # Mutable class var defaults fine in test stubs
+    "Q000",    # Quote style in test data literals
+]
+"ast_intel/core/_hooks.py" = [
+    "S603",    # subprocess.run with hardcoded "git" — trusted
+    "S607",    # partial path "git" — expected and safe
+]
+# Embedded HTML/CSS/JS template string — long lines are unavoidable
+"ast_intel/formatters/_arch_html_template.py" = [
+    "E501",    # long lines in the inline web template
+]
+# Fixture files are test data — all lint rules relaxed
+"tests/fixtures/**/*.py" = [
+    "ALL",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ast_intel"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# ---------------------------------------------------------------------------
+# mypy — strict type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tree_sitter",
+    "tree_sitter_rust",
+    "tree_sitter_go",
+    "tree_sitter_python",
+    "tree_sitter_typescript",
+    "tree_sitter_javascript",
+    "tree_sitter_c_sharp",
+    "tree_sitter_c",
+    "tree_sitter_cpp",
+    "tree_sitter_java",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "-v",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+]
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["ast_intel"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+    "@overload",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]

@@ -1,0 +1,60 @@
+swagger: "2.0"
+info:
+  title: User Service
+  version: "1.0.0"
+  description: A simple user management API.
+
+basePath: /api
+
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      summary: List all users
+      produces:
+        - application/json
+      responses:
+        200:
+          description: A list of users
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/User"
+    post:
+      operationId: createUser
+      summary: Create a new user
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          schema:
+            $ref: "#/definitions/User"
+      responses:
+        201:
+          description: User created
+
+  /users/{userId}:
+    delete:
+      operationId: deleteUser
+      summary: Delete a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: User deleted
+
+definitions:
+  User:
+    type: object
+    description: A user account.
+    properties:
+      id:
+        type: integer
+      username:
+        type: string
+      email:
+        type: string

@@ -1,0 +1,81 @@
+# Navigation benchmark tasks — ground-truth verifiable
+# Each task asks the agent to find structural information about the codebase.
+# Baseline must read files; ast-intel answers via graph queries.
+
+tasks:
+  - id: nav-01
+    prompt: "Where is the QueryEngine class defined? Give me the exact file path."
+    ground_truth:
+      file: "ast_intel/core/_query_engine.py"
+      symbol: "QueryEngine"
+    category: symbol_location
+
+  - id: nav-02
+    prompt: "What are all the direct dependencies (outgoing calls) of the _dispatch function in mcp_server.py?"
+    ground_truth:
+      must_mention:
+        - "search"
+        - "explain"
+        - "get_dependencies"
+        - "get_context"
+        - "find_similar"
+    category: dependency_analysis
+
+  - id: nav-03
+    prompt: "List all files that import from ast_intel.models.graph_model"
+    ground_truth:
+      must_mention:
+        - "mcp_server.py"
+        - "_query_engine.py"
+    category: usage_search
+
+  - id: nav-04
+    prompt: "What is the blast radius if I change the GraphNode class? How many symbols depend on it?"
+    ground_truth:
+      min_affected: 10
+    category: impact_analysis
+
+  - id: nav-05
+    prompt: "Find all functions/methods that have 'similar' in their name in this codebase."
+    ground_truth:
+      must_mention:
+        - "find_similar"
+        - "_find_structural_duplicates"
+    category: symbol_search
+
+  - id: nav-06
+    prompt: "What trait/interface does the Rust extractor implement? What are its required methods?"
+    ground_truth:
+      must_mention:
+        - "ExtractorBase"
+        - "extract"
+    category: trait_analysis
+
+  - id: nav-07
+    prompt: "Show me the shortest dependency path from search_symbols to GraphNode"
+    ground_truth:
+      must_contain_path: true
+    category: path_finding
+
+  - id: nav-08
+    prompt: "Which symbols in ast_intel/mcp_server.py have zero dependents (nothing calls them)?"
+    ground_truth:
+      expects_list: true
+    category: dead_code
+
+  - id: nav-09
+    prompt: "What community/cluster does the _enrich_with_reuse_signals function belong to? List its peers."
+    ground_truth:
+      expects_community: true
+    category: community_detection
+
+  - id: nav-10
+    prompt: "List all MCP tool names registered in the server (from the _TOOLS list). Just the names."
+    ground_truth:
+      min_count: 30
+      must_mention:
+        - "search_symbols"
+        - "find_reusable"
+        - "audit_codebase"
+        - "track_minimalism"
+    category: enumeration

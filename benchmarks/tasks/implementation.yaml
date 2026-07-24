@@ -1,0 +1,58 @@
+# Implementation benchmark tasks — measure code reuse behavior
+# Each task asks the agent to implement something that ALREADY EXISTS.
+# A good agent with ast-intel should find and reuse; baseline rewrites.
+
+tasks:
+  - id: impl-01
+    prompt: "I need a function that finds symbols with zero incoming edges (dead code). Can you implement it?"
+    expected_behavior: reuse
+    existing_symbol: "_find_dead_abstractions"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection
+
+  - id: impl-02
+    prompt: "Write a helper that tokenizes a natural-language string into likely function name fragments (snake_case, camelCase splitting)."
+    expected_behavior: reuse
+    existing_symbol: "_tokenize_intent"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection
+
+  - id: impl-03
+    prompt: "I want to find structurally similar functions across the codebase. Implement a search that returns ranked candidates."
+    expected_behavior: reuse
+    existing_symbol: "find_similar"
+    existing_file: "ast_intel/core/_query_engine.py"
+    category: reuse_detection
+
+  - id: impl-04
+    prompt: "Add a function that computes an impact score by counting lines from a node's span."
+    expected_behavior: reuse
+    existing_symbol: "_estimate_lines"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection
+
+  - id: impl-05
+    prompt: "Create a utility that appends a JSON entry to a JSONL file, creating the directory if needed."
+    expected_behavior: reuse
+    existing_symbol: "_append_to_ledger"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection
+
+  - id: impl-06
+    prompt: "Add a health check endpoint that returns the graph node count and edge count as JSON."
+    expected_behavior: create_minimal
+    category: minimal_creation
+
+  - id: impl-07
+    prompt: "Write a function that given a list of findings, groups them by type and counts each type."
+    expected_behavior: reuse
+    existing_symbol: "_audit_summary"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection
+
+  - id: impl-08
+    prompt: "I need to track when an agent reuses vs creates code. Design a simple logging mechanism."
+    expected_behavior: reuse
+    existing_symbol: "track_minimalism"
+    existing_file: "ast_intel/mcp_server.py"
+    category: reuse_detection

@@ -1,0 +1,10 @@
+FROM python:3.13-slim AS builder
+ARG version=1.0.0
+WORKDIR /app
+COPY . .
+RUN pip install .
+
+FROM python:3.13-slim AS runtime
+COPY --from=builder /app/dist /app
+EXPOSE 8080
+CMD ["python", "-m", "app"]

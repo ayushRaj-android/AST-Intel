@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AST-Intel — Structural Code Intelligence for AI Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface-2: #1a2332;
+  --border: #1f2937;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-light: #60a5fa;
+  --green: #10b981;
+  --purple: #a78bfa;
+  --orange: #f59e0b;
+  --pink: #ec4899;
+  --radius: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+a { color: var(--accent-light); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* Hero */
+.hero { padding: 100px 0 80px; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(ellipse at center, rgba(59,130,246,0.08) 0%, transparent 60%); }
+.hero h1 { font-size: 3.5rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #3b82f6, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; position: relative; }
+.hero .tagline { font-size: 1.35rem; color: var(--text-muted); max-width: 700px; margin: 0 auto 32px; position: relative; }
+.hero .version { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; position: relative; }
+.cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; position: relative; }
+.btn { padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); text-decoration: none; }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); text-decoration: none; }
+
+/* Stats bar */
+.stats-bar { display: flex; justify-content: center; gap: 48px; padding: 40px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.stat { text-align: center; }
+.stat .number { font-size: 2.5rem; font-weight: 700; color: var(--green); }
+.stat .label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+/* Sections */
+section { padding: 80px 0; }
+section:nth-child(even) { background: var(--surface); }
+.section-header { text-align: center; margin-bottom: 48px; }
+.section-header h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 12px; }
+.section-header p { color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+
+/* Feature grid */
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.feature-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: all 0.2s; }
+.feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.feature-card .icon { font-size: 1.8rem; margin-bottom: 12px; }
+.feature-card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; }
+.feature-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.6; }
+.feature-card .tag { display: inline-block; font-size: 0.72rem; background: rgba(59,130,246,0.15); color: var(--accent-light); padding: 2px 8px; border-radius: 4px; margin-top: 12px; margin-right: 6px; }
+
+/* Code block */
+.code-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin: 24px 0; overflow-x: auto; }
+.code-section code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88rem; color: #e2e8f0; }
+.code-section .comment { color: #64748b; }
+.code-section .cmd { color: var(--green); }
+.code-section .flag { color: var(--purple); }
+.code-section .path { color: var(--orange); }
+
+/* Benchmark section */
+.benchmark-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+@media (max-width: 768px) { .benchmark-grid { grid-template-columns: 1fr; } }
+.benchmark-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; }
+.benchmark-card h3 { font-size: 1.2rem; color: var(--accent-light); margin-bottom: 20px; }
+.metric-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.metric-row:last-child { border-bottom: none; }
+.metric-row .value { font-size: 1.4rem; font-weight: 700; color: var(--green); }
+.metric-row .label { color: var(--text-muted); font-size: 0.9rem; }
+
+/* Tools table */
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.tool-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.tool-item .name { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent-light); margin-bottom: 4px; }
+.tool-item .desc { font-size: 0.82rem; color: var(--text-muted); }
+
+/* Protocol */
+.protocol-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 32px; }
+.step { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 20px 16px; text-align: center; position: relative; }
+.step::after { content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); color: var(--green); font-size: 1.2rem; font-weight: 700; }
+.step:last-child::after { display: none; }
+.step .num { font-size: 0.75rem; color: var(--accent-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.step h4 { font-size: 0.95rem; margin-bottom: 4px; }
+.step p { font-size: 0.78rem; color: var(--text-muted); }
+
+/* Languages */
+.lang-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 24px; }
+.lang-badge { background: var(--surface-2); border: 1px solid var(--border); border-radius: 20px; padding: 8px 18px; font-size: 0.88rem; font-weight: 500; }
+.lang-badge.tier1 { border-color: var(--green); color: var(--green); }
+.lang-badge.tier2 { border-color: var(--text-muted); }
+
+/* Install */
+.install-section { text-align: center; }
+.install-steps { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+.install-step { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 300px; text-align: left; }
+.install-step .step-num { font-size: 0.75rem; color: var(--accent-light); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.install-step code { background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; display: block; margin-top: 8px; font-size: 0.82rem; color: var(--green); }
+
+/* Footer */
+footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+footer a { color: var(--accent-light); }
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2.2rem; }
+  .stats-bar { gap: 24px; }
+  .stat .number { font-size: 1.8rem; }
+  .protocol-steps { grid-template-columns: 1fr 1fr; }
+  .step::after { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="container">
+    <div class="version">v0.1.6 · Open Source · MIT License</div>
+    <h1>AST-Intel</h1>
+    <p class="tagline">Structural code intelligence for AI agents. Replace file reading with graph queries — your agents become faster, cheaper, and more accurate.</p>
+    <div class="cta-group">
+      <a href="https://github.com/AstIntel/ast-intel" class="btn btn-primary">Get Started</a>
+      <a href="#features" class="btn btn-secondary">See Features</a>
+      <a href="#benchmarks" class="btn btn-secondary">View Benchmarks</a>
+    </div>
+  </div>
+</header>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat"><div class="number">34</div><div class="label">MCP Tools</div></div>
+  <div class="stat"><div class="number">11</div><div class="label">Languages</div></div>
+  <div class="stat"><div class="number">-33%</div><div class="label">Token Reduction</div></div>
+  <div class="stat"><div class="number">-79%</div><div class="label">File Reads Saved</div></div>
+  <div class="stat"><div class="number">-32%</div><div class="label">Faster Implementations</div></div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <h2>Complete Feature Set</h2>
+      <p>Everything you need to give AI agents structural awareness of your codebase</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">🔍</div>
+        <h3>Semantic Code Graph</h3>
+        <p>Builds a typed knowledge graph with nodes for functions, classes, traits, routes, cloud resources, K8s deployments, and more. Edges encode calls, imports, inherits, implements, and contains relationships.</p>
+        <span class="tag">graph.json</span><span class="tag">ast.json</span><span class="tag">summary.md</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎯</div>
+        <h3>Precision Scan Control</h3>
+        <p>Include/exclude specific folders, filter by language, respect .gitignore. Incremental cache means second runs are instant — only changed files get re-parsed.</p>
+        <span class="tag">--include</span><span class="tag">--exclude</span><span class="tag">--lang</span><span class="tag">--no-cache</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">☁️</div>
+        <h3>Infrastructure as Code</h3>
+        <p>Indexes Kubernetes manifests, Helm charts, Docker builds, Terraform resources, Ansible playbooks, and CI/CD pipelines — all queryable as graph nodes.</p>
+        <span class="tag">Kubernetes</span><span class="tag">Helm</span><span class="tag">Docker</span><span class="tag">Terraform</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌐</div>
+        <h3>Cloud Resource Detection</h3>
+        <p>Auto-discovers databases, caches, queues, and storage from both SDK client calls in code and IaC definitions. Per-function caller attribution included.</p>
+        <span class="tag">Azure</span><span class="tag">AWS</span><span class="tag">GCP</span><span class="tag">BACKED_BY edges</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔗</div>
+        <h3>HTTP Routes & Cross-Service</h3>
+        <p>Extracts routes from 9+ frameworks (FastAPI, Express, Spring, etc.), detects HTTP client calls, and automatically links them — creating cross-service edges.</p>
+        <span class="tag">Route detection</span><span class="tag">Client detection</span><span class="tag">ast-intel merge</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">👤</div>
+        <h3>Git History & Ownership</h3>
+        <p>Per-symbol commit history linked to PRs. Ownership scoring (commit frequency 40% + recency 35% + blame 25%) identifies who owns each piece of code.</p>
+        <span class="tag">get_symbol_history</span><span class="tag">get_ownership</span><span class="tag">get_decision_context</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📊</div>
+        <h3>Interactive Viewers</h3>
+        <p>graph.html: vis.js force-directed explorer with search/filter. architecture.html: 6-tab viewer — Service Map, API UML, Sequence, Flow, Cloud Infra, Deployment.</p>
+        <span class="tag">Offline</span><span class="tag">Zero config</span><span class="tag">Auto-generated</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🧠</div>
+        <h3>Community Detection</h3>
+        <p>Leiden algorithm finds code clusters. God node detection identifies coupling hotspots. Similarity edges reveal refactoring candidates. Hyperedges group multi-member relationships.</p>
+        <span class="tag">--analyze</span><span class="tag">--similarity</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🛡️</div>
+        <h3>CVE Blast Radius</h3>
+        <p>Instant lookup: which files use a vulnerable package method? Per-function attribution across module boundaries. No grep needed — millisecond dictionary lookups.</p>
+        <span class="tag">package_method_index</span><span class="tag">Security</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h3>Privacy by Design</h3>
+        <p>Output contains structure only — no function bodies, no field values, no secrets. Safe to share with LLM providers, commit to repos, or expose through APIs.</p>
+        <span class="tag">No source code</span><span class="tag">Safe to share</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>One-Command IDE Setup</h3>
+        <p><code>ast-intel install copilot</code> auto-detects your editor and writes the MCP configuration. Git hooks keep the graph fresh on every commit.</p>
+        <span class="tag">VS Code</span><span class="tag">Cursor</span><span class="tag">Windsurf</span><span class="tag">Claude</span>
+      </div>
+      <div class="feature-card">
+        <div class="icon">♻️</div>
+        <h3>Minimalism Protocol</h3>
+        <p>Graph-powered code reuse system. find_reusable discovers existing code, audit_codebase finds over-engineering, track_minimalism measures reuse rates over time.</p>
+        <span class="tag">find_reusable</span><span class="tag">audit_codebase</span><span class="tag">reuse_signals</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Minimalism Protocol -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>The Minimalism Protocol</h2>
+      <p>A six-stage decision ladder that ensures agents reuse existing code instead of rewriting it</p>
+    </div>
+    <div class="protocol-steps">
+      <div class="step"><div class="num">Stage 1</div><h4>STOP</h4><p>Does this need to exist?</p></div>
+      <div class="step"><div class="num">Stage 2</div><h4>QUERY</h4><p>search_symbols + find_similar</p></div>
+      <div class="step"><div class="num">Stage 3</div><h4>CHECK</h4><p>Does a dependency handle this?</p></div>
+      <div class="step"><div class="num">Stage 4</div><h4>STDLIB</h4><p>Standard library covers it?</p></div>
+      <div class="step"><div class="num">Stage 5</div><h4>ASSESS</h4><p>get_impact — smallest diff</p></div>
+      <div class="step"><div class="num">Stage 6</div><h4>WRITE</h4><p>Only then: the minimum</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Benchmarks -->
+<section id="benchmarks">
+  <div class="container">
+    <div class="section-header">
+      <h2>Benchmark Results</h2>
+      <p>Measured with GitHub Copilot CLI · Claude Opus 4.8 · Fresh sessions · Ground-truth scoring</p>
+    </div>
+    <div class="benchmark-grid">
+      <div class="benchmark-card">
+        <h3>Navigation Tasks (10 tasks)</h3>
+        <div class="metric-row"><span class="label">Output token reduction</span><span class="value">-33%</span></div>
+        <div class="metric-row"><span class="label">File reads avoided</span><span class="value">-65%</span></div>
+        <div class="metric-row"><span class="label">Response time faster</span><span class="value">-8%</span></div>
+        <div class="metric-row"><span class="label">Avg MCP queries/task</span><span class="value">2.6</span></div>
+        <div class="metric-row"><span class="label">Accuracy</span><span class="value">90%</span></div>
+      </div>
+      <div class="benchmark-card">
+        <h3>Implementation Tasks (8 tasks)</h3>
+        <div class="metric-row"><span class="label">Completion time faster</span><span class="value">-32%</span></div>
+        <div class="metric-row"><span class="label">File reads avoided</span><span class="value">-79%</span></div>
+        <div class="metric-row"><span class="label">Timeouts (ast-intel vs baseline)</span><span class="value">1 vs 3</span></div>
+        <div class="metric-row"><span class="label">Best task speed improvement</span><span class="value">73%</span></div>
+        <div class="metric-row"><span class="label">Best task token reduction</span><span class="value">76%</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Tools -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>34 MCP Tools</h2>
+      <p>Structural queries, history, infrastructure, and minimalism — all available to your AI agent</p>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-item"><div class="name">search_symbols</div><div class="desc">Find functions/structs/traits by name pattern</div></div>
+      <div class="tool-item"><div class="name">find_similar</div><div class="desc">Structurally similar symbols (Jaccard)</div></div>
+      <div class="tool-item"><div class="name">get_dependencies</div><div class="desc">Forward deps grouped by relation</div></div>
+      <div class="tool-item"><div class="name">get_dependents</div><div class="desc">Reverse deps — who uses this?</div></div>
+      <div class="tool-item"><div class="name">get_impact</div><div class="desc">Blast radius of changing a symbol</div></div>
+      <div class="tool-item"><div class="name">get_context</div><div class="desc">Full picture in one call</div></div>
+      <div class="tool-item"><div class="name">explain_symbol</div><div class="desc">Role, callers, callees, community</div></div>
+      <div class="tool-item"><div class="name">find_usages</div><div class="desc">All references across codebase</div></div>
+      <div class="tool-item"><div class="name">find_path</div><div class="desc">Shortest dependency path A→B</div></div>
+      <div class="tool-item"><div class="name">get_community</div><div class="desc">Code cluster membership</div></div>
+      <div class="tool-item"><div class="name">get_implementors</div><div class="desc">Trait/interface implementations</div></div>
+      <div class="tool-item"><div class="name">get_symbol_history</div><div class="desc">Git commits per symbol</div></div>
+      <div class="tool-item"><div class="name">get_ownership</div><div class="desc">Per-author ownership scores</div></div>
+      <div class="tool-item"><div class="name">get_decision_context</div><div class="desc">PR + review evidence</div></div>
+      <div class="tool-item"><div class="name">iac_overview</div><div class="desc">K8s, Helm, Docker, Terraform summary</div></div>
+      <div class="tool-item"><div class="name">get_cloud_resources</div><div class="desc">DB, cache, queue inventory</div></div>
+      <div class="tool-item"><div class="name">find_reusable</div><div class="desc">Search for existing code to reuse</div></div>
+      <div class="tool-item"><div class="name">audit_codebase</div><div class="desc">Dead code, duplicates, wrappers</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Languages -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>11 Languages, One Schema</h2>
+      <p>Every language normalizes to the same graph — same tools, same queries, every language</p>
+    </div>
+    <div class="lang-grid">
+      <span class="lang-badge tier1">Rust</span>
+      <span class="lang-badge tier1">Python</span>
+      <span class="lang-badge tier1">TypeScript</span>
+      <span class="lang-badge tier1">JavaScript</span>
+      <span class="lang-badge tier1">Go</span>
+      <span class="lang-badge tier1">C#</span>
+      <span class="lang-badge tier1">Java</span>
+      <span class="lang-badge tier2">C / C++</span>
+      <span class="lang-badge tier2">Ruby</span>
+      <span class="lang-badge tier2">Kotlin</span>
+      <span class="lang-badge tier2">Swift</span>
+      <span class="lang-badge tier2">PHP</span>
+    </div>
+    <p style="text-align:center; margin-top:16px; color:var(--text-muted); font-size:0.85rem;">Green = Tier 1 (production) · Gray = Tier 2 (community)</p>
+  </div>
+</section>
+
+<!-- Install -->
+<section id="install">
+  <div class="container install-section">
+    <div class="section-header">
+      <h2>Get Started in 3 Commands</h2>
+      <p>Zero to full structural awareness in under a minute</p>
+    </div>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="step-num">Step 1 — Install</div>
+        <p>Install with all language support</p>
+        <code>pip install ast-intel[all,analysis,mcp]</code>
+      </div>
+      <div class="install-step">
+        <div class="step-num">Step 2 — Scan</div>
+        <p>Build the code graph (~8 seconds)</p>
+        <code>ast-intel scan /path/to/repo</code>
+      </div>
+      <div class="install-step">
+        <div class="step-num">Step 3 — Connect</div>
+        <p>Wire into your editor</p>
+        <code>ast-intel install copilot</code>
+      </div>
+    </div>
+    <div class="code-section" style="max-width:700px; margin:32px auto; text-align:left;">
+      <code>
+<span class="comment"># Or install from Git directly</span>
+<span class="cmd">pip install</span> <span class="path">"ast-intel[all,analysis,mcp] @ git+https://github.com/AstIntel/ast-intel.git"</span>
+
+<span class="comment"># Scan with specific options</span>
+<span class="cmd">ast-intel scan</span> <span class="path">/path/to/repo</span> <span class="flag">--include src/ --exclude "*/tests/*" --analyze</span>
+
+<span class="comment"># Start MCP server for editors</span>
+<span class="cmd">ast-intel serve</span> <span class="path">/path/to/repo</span> <span class="flag">--analyze --similarity</span>
+
+<span class="comment"># Auto-rebuild on every commit</span>
+<span class="cmd">ast-intel hook install</span>
+      </code>
+    </div>
+  </div>
+</section>
+
+<!-- Scan Command Reference -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>Scan Command — Full Reference</h2>
+      <p>Control exactly what gets indexed and what gets produced</p>
+    </div>
+
+    <div class="code-section" style="max-width:900px; margin:0 auto 32px;">
+      <code>
+<span class="cmd">ast-intel scan</span> <span class="path">/path/to/repo</span> [OPTIONS]
+
+<span class="comment"># Scope control</span>
+  <span class="flag">--include, -i</span>  PATH    Include specific folders (repeatable)
+  <span class="flag">--exclude, -e</span>  PATH    Exclude specific paths (repeatable)
+  <span class="flag">--lang, -l</span>     LANG    Filter by language: rust, python, typescript, go, csharp, java, cpp
+
+<span class="comment"># Output control</span>
+  <span class="flag">--output, -o</span>   DIR     Output directory (default: &lt;repo&gt;/ast_output/)
+  <span class="flag">--format, -f</span>   FORMAT  Output format (see table below)
+
+<span class="comment"># Analysis flags</span>
+  <span class="flag">--analyze</span>              Run community detection + god node analysis
+  <span class="flag">--similarity</span>           Compute SIMILAR_TO edges (Jaccard structural similarity)
+  <span class="flag">--infra-scan</span>           Emit resources.json (cloud infrastructure inventory)
+
+<span class="comment"># Performance & caching</span>
+  <span class="flag">--workers, -w</span>  INT     Parallel workers (default: CPU count)
+  <span class="flag">--no-cache</span>             Force full re-parse (skip incremental cache)
+  <span class="flag">--no-iac</span>               Skip IaC scanning (K8s, Helm, Docker, Terraform)
+  <span class="flag">--no-methods</span>           Skip package method call extraction
+
+<span class="comment"># Viewer options</span>
+  <span class="flag">--offline</span>              Inline vis.js/mermaid for self-contained HTML (no CDN)
+
+<span class="comment"># Other</span>
+  <span class="flag">--quiet, -q</span>            Suppress progress output (for CI)
+  <span class="flag">--debug</span>                Verbose logging to stderr
+  <span class="flag">--version</span>              Print tool version
+      </code>
+    </div>
+
+    <!-- Format → Output mapping -->
+    <h3 style="text-align:center; margin-bottom:16px; color:var(--accent-light);">--format options → what gets produced</h3>
+    <div style="max-width:800px; margin:0 auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left; padding:10px; color:var(--accent-light);">Format Flag</th>
+            <th style="text-align:left; padding:10px; color:var(--accent-light);">Output File(s)</th>
+            <th style="text-align:left; padding:10px; color:var(--accent-light);">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>both</code> (default)</td><td style="padding:10px;">ast.json + summary.md</td><td style="padding:10px; color:var(--text-muted);">Machine + human-readable index</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>json</code></td><td style="padding:10px;">ast.json</td><td style="padding:10px; color:var(--text-muted);">Machine-readable semantic index only</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>md</code></td><td style="padding:10px;">summary.md</td><td style="padding:10px; color:var(--text-muted);">LLM-readable reference only</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>graph-json</code></td><td style="padding:10px;">graph.json</td><td style="padding:10px; color:var(--text-muted);">Code knowledge graph (nodes + edges)</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>html</code></td><td style="padding:10px;">graph.html</td><td style="padding:10px; color:var(--text-muted);">Interactive vis.js graph viewer</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>arch</code></td><td style="padding:10px;">architecture.html</td><td style="padding:10px; color:var(--text-muted);">6-tab service architecture viewer</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>dot</code></td><td style="padding:10px;">graph.dot</td><td style="padding:10px; color:var(--text-muted);">Graphviz DOT format</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px;"><code>mermaid</code></td><td style="padding:10px;">graph.mermaid.md</td><td style="padding:10px; color:var(--text-muted);">Mermaid diagram for README embedding</td></tr>
+          <tr><td style="padding:10px;"><code>all</code></td><td style="padding:10px;">All of the above</td><td style="padding:10px; color:var(--text-muted);">Full output suite</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Output Structure -->
+<section style="background:var(--surface);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Output Structure: ast_output/</h2>
+      <p>What gets produced and where — after running <code>ast-intel scan</code></p>
+    </div>
+
+    <div class="code-section" style="max-width:750px; margin:0 auto;">
+      <code>
+<span class="path">your-repo/</span>
+├── <span class="path">ast_output/</span>                  <span class="comment"># Default output directory (--output to change)</span>
+│   ├── <span class="cmd">ast.json</span>               <span class="comment"># Semantic index: every type, function, method, import</span>
+│   ├── <span class="cmd">summary.md</span>             <span class="comment"># LLM-readable reference (system prompt prefix)</span>
+│   ├── <span class="cmd">graph.json</span>             <span class="comment"># Code knowledge graph: typed nodes + edges</span>
+│   ├── <span class="cmd">graph.html</span>             <span class="comment"># Interactive vis.js viewer (--format html/all)</span>
+│   ├── <span class="cmd">architecture.html</span>      <span class="comment"># 6-tab service architecture (--format arch/all)</span>
+│   ├── <span class="cmd">resources.json</span>         <span class="comment"># Cloud infrastructure inventory (--infra-scan)</span>
+│   ├── <span class="cmd">graph.dot</span>              <span class="comment"># Graphviz format (--format dot/all)</span>
+│   └── <span class="cmd">graph.mermaid.md</span>       <span class="comment"># Mermaid diagram (--format mermaid/all)</span>
+│
+├── <span class="path">.ast-intel/</span>                  <span class="comment"># AST-Intel working directory (auto-created)</span>
+│   ├── <span class="flag">cache.json</span>             <span class="comment"># Incremental file hash cache</span>
+│   └── <span class="flag">minimalism-ledger.jsonl</span> <span class="comment"># Reuse/create/defer decision log</span>
+│
+├── <span class="flag">.ast-intel-scan</span>              <span class="comment"># Include file (paths to scan, one per line)</span>
+├── <span class="flag">.ast-intel-ignore</span>            <span class="comment"># Exclude file (gitignore syntax)</span>
+├── <span class="flag">AGENTS.md</span>                    <span class="comment"># Minimalism Protocol for Codex/Claude Code</span>
+└── <span class="flag">.github/copilot-instructions.md</span>  <span class="comment"># Minimalism Protocol for GitHub Copilot</span>
+      </code>
+    </div>
+
+    <div class="benchmark-grid" style="margin-top:32px;">
+      <div class="benchmark-card">
+        <h3 style="color:var(--green);">.ast-intel-scan (Include File)</h3>
+        <p style="color:var(--text-muted); margin-bottom:12px;">Place in repo root. One path per line — only these get scanned.</p>
+        <div class="code-section" style="margin:0;">
+          <code>
+<span class="comment"># .ast-intel-scan</span>
+<span class="path">src/</span>
+<span class="path">lib/</span>
+<span class="path">services/</span>
+<span class="comment"># Comments and blank lines are ignored</span>
+          </code>
+        </div>
+      </div>
+      <div class="benchmark-card">
+        <h3 style="color:var(--orange);">.ast-intel-ignore (Exclude File)</h3>
+        <p style="color:var(--text-muted); margin-bottom:12px;">Place in repo root. Gitignore-compatible glob patterns.</p>
+        <div class="code-section" style="margin:0;">
+          <code>
+<span class="comment"># .ast-intel-ignore</span>
+<span class="path">**/tests/**</span>
+<span class="path">**/node_modules/**</span>
+<span class="path">**/target/**</span>
+<span class="path">**/dist/**</span>
+<span class="path">*.generated.ts</span>
+          </code>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Configuration -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>MCP Configuration</h2>
+      <p>Connect your AI editor to the code graph — automatic or manual</p>
+    </div>
+
+    <!-- Auto install -->
+    <div class="benchmark-card" style="max-width:800px; margin:0 auto 24px;">
+      <h3 style="color:var(--green);">Option A: Automatic (Recommended)</h3>
+      <div class="code-section" style="margin:12px 0 0;">
+        <code>
+<span class="comment"># Auto-detect IDE and configure MCP</span>
+<span class="cmd">ast-intel install</span>
+
+<span class="comment"># Or specify the platform explicitly</span>
+<span class="cmd">ast-intel install</span> <span class="flag">--platform vscode</span>
+<span class="cmd">ast-intel install</span> <span class="flag">--platform cursor</span>
+<span class="cmd">ast-intel install</span> <span class="flag">--platform windsurf</span>
+<span class="cmd">ast-intel install</span> <span class="flag">--platform claude-desktop</span>
+
+<span class="comment"># Remove later</span>
+<span class="cmd">ast-intel uninstall</span>
+        </code>
+      </div>
+    </div>
+
+    <!-- Manual configs -->
+    <div class="benchmark-grid">
+      <div class="benchmark-card">
+        <h3>VS Code + Copilot</h3>
+        <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:8px;">.vscode/mcp.json</p>
+        <div class="code-section" style="margin:0; font-size:0.8rem;">
+          <code>{
+  "servers": {
+    "ast-intel": {
+      "command": "/path/to/ast-intel",
+      "args": ["serve", "/path/to/repo",
+               "--analyze"]
+    }
+  }
+}</code>
+        </div>
+      </div>
+      <div class="benchmark-card">
+        <h3>Cursor / Windsurf / Claude</h3>
+        <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:8px;">.cursor/mcp.json or ~/.codeium/windsurf/mcp_config.json</p>
+        <div class="code-section" style="margin:0; font-size:0.8rem;">
+          <code>{
+  "mcpServers": {
+    "ast-intel": {
+      "command": "/path/to/ast-intel",
+      "args": ["serve", "/path/to/repo",
+               "--analyze", "--similarity"]
+    }
+  }
+}</code>
+        </div>
+      </div>
+    </div>
+
+    <p style="text-align:center; margin-top:16px; color:var(--text-muted); font-size:0.85rem;">💡 Always use <strong>absolute paths</strong>. IDEs don't inherit shell environments (conda, pyenv, nvm).</p>
+  </div>
+</section>
+
+<!-- Minimalism Protocol Setup -->
+<section style="background:var(--surface);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Setting Up the Minimalism Protocol</h2>
+      <p>Agent instructions that tell your coding AI to query the graph before writing code</p>
+    </div>
+
+    <div class="benchmark-grid" style="margin-bottom:24px;">
+      <div class="benchmark-card">
+        <h3 style="color:var(--green);">AGENTS.md <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">— for Codex, Claude Code, CodeWhale</span></h3>
+        <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:12px;">Place in repo root. Read automatically by compatible agents on session start.</p>
+        <div class="code-section" style="margin:0; font-size:0.78rem; max-height:280px; overflow-y:auto;">
+          <code># AST-Intel — Minimalism-First Agent Mode
+
+You are a minimalist coding agent. You have access
+to a structural code graph via the ast-intel MCP
+server.
+
+## The Protocol
+
+Before writing code, stop at the first rung:
+
+1. **Does this need to exist?** → Skip it (YAGNI)
+2. **Already in codebase?** → search_symbols /
+   find_similar. If match: REUSE.
+3. **Stdlib does it?** → Use it. No wrapper.
+4. **Installed dep does it?** → Use it.
+5. **One line?** → Make it one line.
+6. **Only then:** write the minimum that works.
+
+## Rules
+- No abstractions nobody asked for
+- Deletion over addition. Boring over clever.
+- get_impact before touching shared code
+- Mark shortcuts: # minimal: &lt;reason&gt;
+- Mark reuse: # reuse: &lt;file:line&gt;</code>
+        </div>
+      </div>
+      <div class="benchmark-card">
+        <h3 style="color:var(--accent-light);">.github/copilot-instructions.md <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">— for GitHub Copilot</span></h3>
+        <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:12px;">Auto-loaded by Copilot in VS Code and CLI. Tells agent to use MCP tools.</p>
+        <div class="code-section" style="margin:0; font-size:0.78rem; max-height:280px; overflow-y:auto;">
+          <code># AST-Intel — Agent Instructions
+
+You have access to the ast-intel MCP server.
+Use it before writing new code.
+
+## The Minimalism Protocol
+
+### 1. STOP — Does this need to exist?
+
+### 2. QUERY the graph
+Call search_symbols with the name of what you're
+about to write. Call find_similar if you have a
+reference. The graph is authoritative.
+
+### 3. CHECK dependencies
+Call get_dependencies. If an installed package
+already exposes this, USE it.
+
+### 4. CHECK stdlib coverage
+
+### 5. ASSESS impact
+Call get_impact. If blast radius is large,
+prefer the SMALLEST correct diff.
+
+### 6. Only then: write the minimum that works</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="benchmark-card" style="max-width:800px; margin:0 auto;">
+      <h3 style="color:var(--purple);">.cursor/rules/ast-intel-minimal.md <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">— for Cursor</span></h3>
+      <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:12px;">Cursor rules with YAML frontmatter. Always-on for all code files.</p>
+      <div class="code-section" style="margin:0; font-size:0.78rem;">
+        <code>---
+description: AST-Intel minimalism protocol
+globs: ["**/*.py", "**/*.ts", "**/*.js", "**/*.go", "**/*.rs"]
+alwaysApply: true
+---
+
+# Minimalism Protocol
+
+Before implementing anything new:
+1. search_symbols("&lt;what you're about to write&gt;") — reuse if exists
+2. find_similar("&lt;reference&gt;") — check for close matches
+3. get_dependencies("&lt;module&gt;") — dep already handles it?
+4. If stdlib covers it, use stdlib. No wrapper.
+5. get_impact("&lt;target&gt;") before modifying shared code.
+6. Only then: write the minimum that works.</code>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:24px;">
+      <p style="color:var(--text-muted); font-size:0.9rem;">These files are auto-generated by <code style="color:var(--green);">ast-intel install</code> — or copy them manually from the AST-Intel repo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>AST-Intel v0.1.6 · MIT License · <a href="https://github.com/AstIntel/ast-intel">GitHub</a> · Built for AI agents that deserve better than grep</p>
+  </div>
+</footer>
+
+</body>
+</html>
