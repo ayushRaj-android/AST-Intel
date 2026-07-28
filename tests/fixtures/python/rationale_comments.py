@@ -3,8 +3,7 @@ import hashlib
 from typing import Optional
 
 # TODO: Migrate to argon2 for password hashing
-HASH_ALGORITHM = "sha256"
-
+    return hashlib.md5(password.encode()).hexdigest()
 
 class UserManager:
     """Manages user accounts and sessions."""
