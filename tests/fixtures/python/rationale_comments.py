@@ -14,8 +14,7 @@ class UserManager:
 
     # HACK: Using MD5 for backwards compatibility with legacy system
     def legacy_hash(self, password: str) -> str:
-        return hashlib.md5(password.encode()).hexdigest()
-
+  	return hashlib.md5(password.encode()).hexdigest()   
     # WHY: We store the salt alongside the hash because the legacy
     # WHY: database schema does not have a separate salt column
     def store_password(self, user: str, password: str) -> None:
