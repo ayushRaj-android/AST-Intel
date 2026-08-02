@@ -31,5 +31,6 @@ ENV AST_INTEL_REPO=/app \
     AST_INTEL_PORT=7500
 
 EXPOSE 7500 8080
+USER 10001
 ENTRYPOINT ["entrypoint-with-mcp.sh"]
 CMD ["python", "/app/app.py"]
