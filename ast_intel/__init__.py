@@ -15,5 +15,5 @@ Consumers should check ``meta.schema_version`` before parsing.
 Backward-incompatible changes bump the major version.
 """
 
-TOOL_VERSION: str = "0.1.8"
+TOOL_VERSION: str = "0.1.9"
 """Current release version of the ast-intel CLI tool."""

@@ -1454,12 +1454,18 @@ class TypeScriptExtractor(ExtractorBase):
             for dep_name, dep_ver in data.get(group_key, {}).items()
         ]
 
+        # Augment declared ranges with resolved pins from a sibling lockfile
+        # (package-lock.json / yarn.lock / pnpm-lock.yaml) + transitive deps.
+        from ast_intel.core.lockfile_parser import augment_with_lockfile
+
+        merged = augment_with_lockfile(manifest_path.parent, self.language_id, deps)
+
         return CrateModel(
             name=name,
             version=version,
             language=self.language_id,
             manifest_path=str(manifest_path),
-            dependencies=deps,
+            dependencies=merged,
         )
 
 

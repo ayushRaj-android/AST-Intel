@@ -28,4 +28,4 @@ class TestPackageMetadata:
         assert SCHEMA_VERSION == "1.0.0"
 
     def test_tool_version_value(self) -> None:
-        assert TOOL_VERSION == "0.1.8"
+        assert TOOL_VERSION == "0.1.9"

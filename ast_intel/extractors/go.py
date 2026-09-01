@@ -1137,10 +1137,14 @@ def _parse_require_line(line: str) -> CrateDependency | None:
     match = _REQUIRE_LINE_RE.match(line)
     if match is None:
         return None
+    # ``go.mod`` already pins resolved versions; ``// indirect`` marks a
+    # transitive dependency (not declared by this module directly).
+    is_indirect = match.group("comment") == "indirect"
     return CrateDependency(
         name=match.group("path"),
         version=match.group("version"),
-        is_dev=match.group("comment") == "indirect",
+        is_dev=is_indirect,
+        is_transitive=is_indirect,
     )
 
 

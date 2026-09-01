@@ -1128,12 +1128,18 @@ class RubyExtractor(ExtractorBase):
                     )
                 )
 
+        # Augment declared gems with resolved pins + transitive gems from a
+        # sibling ``Gemfile.lock``.
+        from ast_intel.core.lockfile_parser import augment_with_lockfile
+
+        merged = augment_with_lockfile(manifest_path.parent, "ruby", deps)
+
         return CrateModel(
             name=name,
             version="",
             manifest_path=str(manifest_path),
             language="ruby",
-            dependencies=deps,
+            dependencies=merged,
         )
 
 

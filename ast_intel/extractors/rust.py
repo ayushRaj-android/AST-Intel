@@ -843,12 +843,18 @@ class RustExtractor(ExtractorBase):
             data.get("dev-dependencies", {}), is_dev=True
         )
 
+        # Augment declared ranges with resolved pins + transitive deps from
+        # a sibling ``Cargo.lock``.
+        from ast_intel.core.lockfile_parser import augment_with_lockfile
+
+        merged = augment_with_lockfile(manifest_path.parent, "rust", deps + dev_deps)
+
         return CrateModel(
             name=crate_name,
             version=str(version) if version else "",
             manifest_path=str(manifest_path),
             language="rust",
-            dependencies=deps + dev_deps,
+            dependencies=merged,
         )
 
     # ------------------------------------------------------------------
