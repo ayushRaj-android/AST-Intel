@@ -651,7 +651,12 @@ class PhpExtractor(ExtractorBase):
                     version=ver,
                     is_dev=is_dev,
                 ))
-        crate.dependencies = deps
+
+        # Augment declared ranges with resolved pins + transitive packages from
+        # a sibling ``composer.lock``.
+        from ast_intel.core.lockfile_parser import augment_with_lockfile
+
+        crate.dependencies = augment_with_lockfile(manifest_path.parent, "php", deps)
 
         return crate
 

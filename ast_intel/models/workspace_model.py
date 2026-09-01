@@ -39,6 +39,8 @@ class CrateDependency:
         features: Enabled features for this dependency.
         is_workspace: Whether this dependency uses workspace inheritance.
         is_dev: Whether this is a dev / test-only dependency.
+        is_transitive: Whether this dependency is transitive (not declared in the
+            manifest, only present in the resolved lockfile).
     """
 
     name: str
@@ -47,6 +49,7 @@ class CrateDependency:
     features: tuple[str, ...] = ()
     is_workspace: bool = False
     is_dev: bool = False
+    is_transitive: bool = False
 
 
 @dataclass(slots=True)

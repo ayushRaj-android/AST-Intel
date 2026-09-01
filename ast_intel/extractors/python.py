@@ -1328,13 +1328,59 @@ class PythonExtractor(ExtractorBase):
                     self._parse_python_deps(pkgs, is_dev=True),
                 )
 
+        # Augment with RESOLVED versions from a sibling lockfile (poetry.lock /
+        # Pipfile.lock / pinned requirements.txt). Lockfile pins override the
+        # manifest's declared ranges and contribute transitive dependencies, so
+        # the crate carries an accurate package inventory rather than just ranges.
+        from ast_intel.core.lockfile_parser import parse_python_lockfile
+
+        lock_deps = parse_python_lockfile(manifest_path.parent)
+        merged = self._merge_deps(deps + dev_deps, lock_deps)
+
         return CrateModel(
             name=name,
             version=str(version) if version else "",
             manifest_path=str(manifest_path),
             language="python",
-            dependencies=deps + dev_deps,
+            dependencies=merged,
         )
+
+    @staticmethod
+    def _merge_deps(
+        manifest_deps: list[CrateDependency],
+        lock_deps: list[CrateDependency],
+    ) -> list[CrateDependency]:
+        """Merge declared manifest deps with resolved lockfile deps.
+
+        Lockfile pins win on ``version``; deps also present in the manifest are
+        marked direct (``is_transitive=False``), lockfile-only deps keep the
+        lockfile parser's own transitivity signal.
+        """
+        direct_names = {d.name.lower() for d in manifest_deps}
+        by_name: dict[str, CrateDependency] = {
+            d.name.lower(): d for d in manifest_deps
+        }
+        for d in lock_deps:
+            key = d.name.lower()
+            existing = by_name.get(key)
+            if existing is None:
+                by_name[key] = CrateDependency(
+                    name=d.name,
+                    version=d.version,
+                    is_dev=d.is_dev,
+                    is_transitive=False if key in direct_names else d.is_transitive,
+                )
+            else:
+                by_name[key] = CrateDependency(
+                    name=existing.name or d.name,
+                    version=d.version or existing.version,
+                    path=existing.path,
+                    features=existing.features,
+                    is_workspace=existing.is_workspace,
+                    is_dev=existing.is_dev or d.is_dev,
+                    is_transitive=False,  # declared in the manifest → direct
+                )
+        return list(by_name.values())
 
     @staticmethod
     def _parse_python_deps(
